@@ -5,6 +5,7 @@ const morgan = require('morgan');
 const helmet = require('helmet');
 const routes = require('./routes');
 const { FRONTEND_URL, PORT } = require('./util/constants');
+const mongoose = require('mongoose');
 
 const app = express();
 const port = PORT || 5000;
@@ -31,13 +32,21 @@ app.listen(port, () => {
     console.log(`Server is running on port: ${port}`);
 });
 
-// Xử lý tắt server và đóng kết nối
+let isShuttingDown = false; // Cờ kiểm soát shutdown
+
 const gracefulShutdown = async () => {
-    console.log('\n⏳ Gracefully shutting down...');
+    if (isShuttingDown) return; // Nếu đã bắt đầu shutdown, không xử lý lại
+    isShuttingDown = true; // Đặt cờ để ngăn việc gọi lại
+
+    console.log('\nGracefully shutting down...');
     try {
-        // Nếu có kết nối cơ sở dữ liệu, đóng nó ở đây
+        // Đóng kết nối MongoDB
+        await mongoose.connection.close();
+        console.log('MongoDB connection closed.');
+
+        // Thoát ứng dụng
+        process.exit(0); // Thoát ứng dụng với mã thành công
     } catch (err) {
-        console.error('❌ Error during shutdown:', err);
         process.exit(1);
     }
 };
