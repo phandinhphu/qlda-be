@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon --inspect src/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest --setupFilesAfterEnv=./tests/setup.js",
+    "test:watch": "jest --watch --setupFilesAfterEnv=./tests/setup.js",
+    "test:coverage": "jest --coverage --setupFilesAfterEnv=./tests/setup.js",
     "beautiful": "lint-staged",
     "prepare": "husky"
   },
@@ -34,13 +36,18 @@
     "express-validator": "^7.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.14.1"
+    "mongoose": "^8.14.1",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
+    "jest": "^30.2.0",
+    "lint-staged": "^16.1.1",
+    "mongodb-memory-server": "^10.2.3",
     "morgan": "^1.10.0",
     "nodemon": "^3.1.10",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.1.1",
-    "prettier": "^3.5.3"
+    "prettier": "^3.5.3",
+    "supertest": "^7.1.4"
   }
 }
