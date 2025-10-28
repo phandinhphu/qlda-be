@@ -18,6 +18,22 @@ const MONGODB_URI = process.env.MONGODB_URI
           throw new Error('MONGODB_URI chưa được định nghĩa trong file .env');
       })();
 
+const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL
+    ? process.env.GOOGLE_CALLBACK_URL
+    : (() => {
+          throw new Error('GOOGLE_CALLBACK_URL chưa được định nghĩa trong file .env');
+      })();
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
+    ? process.env.GOOGLE_CLIENT_ID
+    : (() => {
+          throw new Error('GOOGLE_CLIENT_ID chưa được định nghĩa trong file .env');
+      })();
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET
+    ? process.env.GOOGLE_CLIENT_SECRET
+    : (() => {
+          throw new Error('GOOGLE_CLIENT_SECRET chưa được định nghĩa trong file .env');
+      })();
+
 module.exports = {
     JWT_SECRET,
     JWT_EXPIRES_IN,
@@ -25,4 +41,7 @@ module.exports = {
     FRONTEND_URL,
     PORT,
     MONGODB_URI,
+    GOOGLE_CALLBACK_URL,
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
 };
