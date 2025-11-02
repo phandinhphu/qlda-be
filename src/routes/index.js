@@ -8,6 +8,7 @@ const projectRoutes = require('./projectRoutes');
 route.use('/auth', authRoutes);
 route.use('/lists', listRoutes);
 route.use('/tasks', taskRoutes);
+route.use('/projects', projectRoutes);
 route.get('/', (req, res) => {
     res.send('API is running...');
 });
