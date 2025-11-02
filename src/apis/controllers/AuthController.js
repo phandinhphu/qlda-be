@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
 const { JWT_SECRET, JWT_EXPIRES_IN } = require('../../util/constants');
-
+const sendEmail = require('../../util/email');
 class AuthController {
     // [POST] /auth/register
     async register(req, res) {
@@ -101,6 +101,78 @@ class AuthController {
         } catch (error) {
             console.error(error);
             return res.status(500).json({ message: 'Có lỗi xảy ra. Vui lòng thử lại sau!!!' });
+        }
+    }
+
+    async forgotPassword(req, res) {
+        // 1. Tìm user
+        const user = await User.findOne({ email: req.body.email });
+        if (!user) {
+            // Luôn trả về 200 (bảo mật, không cho biết email có tồn tại hay không)
+            return res.status(200).json({ message: 'Link reset đã được gửi.' });
+        }
+
+        try {
+            // 2. Tạo token
+            const resetToken = user.createPasswordResetToken();
+            await user.save({ validateBeforeSave: false }); // Lưu token (đã hash) và hạn dùng
+
+            // 3. Gửi mail chứa token GỐC
+            // ĐỔI LẠI URL NÀY thành URL của frontend
+            const resetURL = `http://localhost:5173/reset-password/${resetToken}`;
+
+            const message = `Vui lòng nhấp vào link sau để đặt lại mật khẩu (hiệu lực 10 phút): ${resetURL}`;
+
+            await sendEmail({
+                email: user.email,
+                subject: 'Yêu cầu đặt lại mật khẩu',
+                message: message,
+            });
+
+            res.status(200).json({ message: 'Link reset đã được gửi.' });
+        } catch (err) {
+            // Nếu lỗi, xóa token để user thử lại
+            console.error('LỖI THẬT SỰ TRONG FORGOTPASSWORD:', err);
+
+            // Lỗi của SendGrid thường nằm trong 'response.body'
+            if (err.response) {
+                console.error('CHI TIẾT LỖI TỪ SENDGRID:', err.response.body);
+            }
+            user.passwordResetToken = null;
+            user.passwordResetExpires = null;
+            await user.save({ validateBeforeSave: false });
+            res.status(500).json({ message: 'Lỗi gửi email, vui lòng thử lại.' });
+        }
+    }
+
+    // [POST] /api/auth/reset-password/:token
+    async resetPassword(req, res) {
+        try {
+            // 1. Hash token GỐC từ URL
+            const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+
+            // 2. Tìm user bằng token (đã hash) và chưa hết hạn
+            const user = await User.findOne({
+                passwordResetToken: hashedToken,
+                passwordResetExpires: { $gt: Date.now() }, // $gt = Lớn hơn (còn hạn)
+            });
+
+            // 3. Nếu token sai hoặc hết hạn
+            if (!user) {
+                return res.status(400).json({ message: 'Token không hợp lệ hoặc đã hết hạn.' });
+            }
+
+            // 4. Cập nhật mật khẩu
+            user.password = await bcrypt.hash(req.body.password, 10);
+
+            // 5. Xóa token
+            user.passwordResetToken = null;
+            user.passwordResetExpires = null;
+            await user.save();
+
+            res.status(200).json({ message: 'Đặt lại mật khẩu thành công!' });
+        } catch (error) {
+            res.status(500).json({ message: 'Có lỗi xảy ra.' });
         }
     }
 }

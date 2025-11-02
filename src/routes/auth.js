@@ -28,4 +28,6 @@ route.get('/google/callback', passport.authenticate('google', { session: false }
     res.redirect(`${FRONTEND_URL}/`);
 });
 
+route.post('/forgot-password', AuthController.forgotPassword);
+route.post('/reset-password/:token', AuthController.resetPassword);
 module.exports = route;
