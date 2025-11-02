@@ -1,5 +1,8 @@
 const Project = require('../models/Project');
 const User = require('../models/User');
+const List = require('../models/List');
+const Task = require('../models/Task');
+const ProjectMember = require('../models/ProjectMember');
 
 class ProjectController {
     // [GET] /api/projects - Lấy danh sách tất cả dự án
@@ -77,18 +80,14 @@ class ProjectController {
                 });
             }
 
-            // TODO: Lấy user_id từ authentication middleware (hiện tại tạm thời hardcode)
-            // Tạm thời lấy user đầu tiên trong database hoặc hardcode
-            let userId = req.user?._id;
+            // Lấy user_id từ authentication middleware
+            // authMiddleware đảm bảo req.user luôn được set
+            const userId = req.user._id;
             if (!userId) {
-                const firstUser = await User.findOne();
-                if (!firstUser) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Không tìm thấy người dùng. Vui lòng đăng nhập',
-                    });
-                }
-                userId = firstUser._id;
+                return res.status(401).json({
+                    success: false,
+                    message: 'Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại',
+                });
             }
 
             const newProject = new Project({
@@ -99,6 +98,14 @@ class ProjectController {
 
             const savedProject = await newProject.save();
             await savedProject.populate('created_by', 'name email avatar_url');
+
+            // Tự động tạo ProjectMember cho người tạo với role 'owner'
+            const newProjectMember = new ProjectMember({
+                project_id: savedProject._id,
+                user_id: userId,
+                role: 'owner',
+            });
+            await newProjectMember.save();
 
             return res.status(201).json({
                 success: true,
@@ -186,6 +193,21 @@ class ProjectController {
                 });
             }
 
+            // Cascade delete: Xóa tất cả lists và tasks trong project
+            const lists = await List.find({ project_id: id });
+            const listIds = lists.map((list) => list._id);
+
+            // Xóa tất cả tasks trong các lists
+            if (listIds.length > 0) {
+                await Task.deleteMany({ list_id: { $in: listIds } });
+            }
+
+            // Xóa tất cả lists
+            await List.deleteMany({ project_id: id });
+
+            // Xóa tất cả ProjectMembers
+            await ProjectMember.deleteMany({ project_id: id });
+
             // Xóa project
             await Project.findByIdAndDelete(id);
 
@@ -203,4 +225,13 @@ class ProjectController {
     }
 }
 
-module.exports = new ProjectController();
+const controller = new ProjectController();
+
+// Bind methods to maintain 'this' context
+module.exports = {
+    getAllProjects: controller.getAllProjects.bind(controller),
+    getProjectById: controller.getProjectById.bind(controller),
+    createProject: controller.createProject.bind(controller),
+    updateProject: controller.updateProject.bind(controller),
+    deleteProject: controller.deleteProject.bind(controller),
+};
