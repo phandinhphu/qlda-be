@@ -24,4 +24,8 @@ const listSchema = new mongoose.Schema(
     },
 );
 
+// Indexes for better query performance
+listSchema.index({ project_id: 1, position: 1 });
+listSchema.index({ project_id: 1 });
+
 module.exports = mongoose.model('List', listSchema);

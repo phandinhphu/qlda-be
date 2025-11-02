@@ -12,7 +12,7 @@ const connectDB = require('./config/db');
 require('./config/passport')(passport);
 
 const app = express();
-const port = PORT || 5000;
+const port = PORT;
 
 app.use(
     cors({
