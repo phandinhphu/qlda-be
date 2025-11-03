@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const ListController = require('../apis/controllers/ListController');
-
 /**
  * @route   GET /api/lists/:projectId
  * @desc    Lấy tất cả List (cột) và Task của một Project
@@ -26,6 +25,6 @@ router.put('/:id', ListController.updateList);
  * @desc    Xóa một List (và tất cả Task bên trong)
  * @note    :id ở đây là ID của List (cột)
  */
-router.delete('/:id', ListController.deleteList);
+router.delete('/:listId', ListController.deleteList);
 
 module.exports = router;
