@@ -136,151 +136,18 @@ class TaskController {
     // [PUT] /api/tasks/:taskId - Cập nhật task
     async updateTask(req, res) {
         try {
-            const { taskId } = req.params;
+            const { id } = req.params;
             const updateData = req.body;
-            const userId = req.user?._id;
 
-            // Find task
-            const task = await Task.findById(taskId);
-            if (!task) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Không tìm thấy task',
-                });
-            }
-
-            // Get projectId for permission check
-            const projectId = await this.getProjectIdFromList(task.list_id);
-            if (!projectId) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Không tìm thấy dự án liên quan',
-                });
-            }
-
-            // Check permissions
-            if (userId) {
-                const project = await Project.findById(projectId);
-                if (project) {
-                    const isMember = await this.checkProjectMember(projectId.toString(), userId);
-                    const projectCreatorId = project.created_by.toString();
-                    const currentUserId = userId.toString();
-                    const isCreator = projectCreatorId === currentUserId;
-
-                    if (!isMember && !isCreator) {
-                        return res.status(403).json({
-                            success: false,
-                            message: 'Bạn không có quyền cập nhật task này',
-                        });
-                    }
-                }
-            }
-
-            // Handle move to another list
-            if (updateData.listId || updateData.list_id || updateData.targetListId) {
-                const targetListId = updateData.listId || updateData.list_id || updateData.targetListId;
-
-                // Validate target list
-                const targetList = await List.findById(targetListId);
-                if (!targetList) {
-                    return res.status(404).json({
-                        success: false,
-                        message: 'Không tìm thấy list đích',
-                    });
-                }
-
-                // Check if target list is in same project
-                const targetProjectId = await this.getProjectIdFromList(targetListId);
-                if (targetProjectId?.toString() !== projectId.toString()) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Không thể di chuyển task sang list của dự án khác',
-                    });
-                }
-
-                task.list_id = targetListId;
-
-                // If position is provided for new list, use it; otherwise get max + 1
-                if (updateData.position !== undefined && updateData.position !== null) {
-                    task.position = updateData.position;
-                } else {
-                    const maxTask = await Task.findOne({ list_id: targetListId }).sort({ position: -1 });
-                    task.position = maxTask ? maxTask.position + 1 : 0;
-                }
-            }
-
-            // Update other fields
-            if (updateData.title !== undefined) {
-                if (updateData.title.trim().length === 0) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Tiêu đề task không được để trống',
-                    });
-                }
-                task.title = updateData.title.trim();
-            }
-
-            if (updateData.description !== undefined) {
-                task.description = updateData.description ? updateData.description.trim() : null;
-            }
-
-            if (updateData.assigned_to !== undefined || updateData.assignees !== undefined) {
-                const assigneeId =
-                    updateData.assigned_to ||
-                    (Array.isArray(updateData.assignees) && updateData.assignees.length > 0
-                        ? updateData.assignees[0]
-                        : null);
-
-                if (assigneeId) {
-                    const assignee = await User.findById(assigneeId);
-                    if (!assignee) {
-                        return res.status(400).json({
-                            success: false,
-                            message: 'Người được gán không tồn tại',
-                        });
-                    }
-                    task.assigned_to = assigneeId;
-                } else {
-                    task.assigned_to = null;
-                }
-            }
-
-            if (updateData.dueDate !== undefined || updateData.due_date !== undefined) {
-                const dueDateValue = updateData.dueDate || updateData.due_date;
-                task.due_date = dueDateValue ? new Date(dueDateValue) : null;
-            }
-
-            if (
-                updateData.position !== undefined &&
-                updateData.position !== null &&
-                !updateData.listId &&
-                !updateData.list_id &&
-                !updateData.targetListId
-            ) {
-                task.position = updateData.position;
-            }
-
-            if (updateData.status !== undefined) {
-                task.status = updateData.status;
-            }
-
-            if (updateData.priority !== undefined) {
-                task.priority = updateData.priority;
-            }
-
-            const updatedTask = await task.save();
-            await updatedTask.populate('assigned_to', 'name email avatar_url');
-
+            await Task.findByIdAndUpdate(id, updateData);
             return res.status(200).json({
-                success: true,
-                data: updatedTask,
                 message: 'Cập nhật task thành công',
             });
         } catch (error) {
-            console.error('Error updating task:', error);
+            console.error('Error edit task:', error);
             return res.status(500).json({
                 success: false,
-                message: 'Có lỗi xảy ra khi cập nhật task',
+                message: 'Có lỗi xảy ra khi edit task',
             });
         }
     }
@@ -288,50 +155,9 @@ class TaskController {
     // [DELETE] /api/tasks/:taskId - Xóa task
     async deleteTask(req, res) {
         try {
-            const { taskId } = req.params;
-            const userId = req.user?._id;
-
-            // Find task
-            const task = await Task.findById(taskId);
-            if (!task) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Không tìm thấy task',
-                });
-            }
-
-            // Get projectId for permission check
-            const projectId = await this.getProjectIdFromList(task.list_id);
-            if (!projectId) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Không tìm thấy dự án liên quan',
-                });
-            }
-
-            // Check permissions
-            if (userId) {
-                const project = await Project.findById(projectId);
-                if (project) {
-                    const isMember = await this.checkProjectMember(projectId.toString(), userId);
-                    const projectCreatorId = project.created_by.toString();
-                    const currentUserId = userId.toString();
-                    const isCreator = projectCreatorId === currentUserId;
-
-                    if (!isMember && !isCreator) {
-                        return res.status(403).json({
-                            success: false,
-                            message: 'Bạn không có quyền xóa task này',
-                        });
-                    }
-                }
-            }
-
-            // Delete task
-            await Task.findByIdAndDelete(taskId);
-
+            const { id } = req.params;
+            await Task.findByIdAndDelete(id);
             return res.status(200).json({
-                success: true,
                 message: 'Xóa task thành công',
             });
         } catch (error) {
