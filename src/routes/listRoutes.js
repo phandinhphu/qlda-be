@@ -1,6 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const ListController = require('../apis/controllers/ListController');
+
+/**
+ * @route   PUT /api/lists/reorder
+ * @desc    Cập nhật lại thứ tự (position) của nhiều list
+ */
+router.put('/reorder', ListController.reorderLists);
+
 /**
  * @route   GET /api/lists/:projectId
  * @desc    Lấy tất cả List (cột) và Task của một Project

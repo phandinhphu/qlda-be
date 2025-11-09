@@ -415,66 +415,35 @@ class ListController {
         }
     }
 
-    // [PUT] /api/projects/:projectId/lists/reorder - Sắp xếp lại thứ tự lists
+    /**
+     * @route   PUT /api/lists/reorder
+     * @desc    Cập nhật thứ tự (position) của nhiều List
+     * @body    { orderedListIds: [string] }
+     */
     async reorderLists(req, res) {
+        const { orderedListIds } = req.body;
+
+        if (!orderedListIds || !Array.isArray(orderedListIds)) {
+            return res.status(400).json({ message: 'Cần có orderedListIds là một mảng' });
+        }
+
         try {
-            const { projectId } = req.params;
-            const { listOrders } = req.body; // Array of { listId, position }
-            const userId = req.user?._id;
+            // Tạo mảng các lệnh
+            const operations = orderedListIds.map((listId, index) => ({
+                updateOne: {
+                    filter: { _id: listId },
+                    update: { $set: { position: index } }, // Gán position mới
+                },
+            }));
 
-            // Validation
-            if (!Array.isArray(listOrders) || listOrders.length === 0) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Danh sách thứ tự không hợp lệ',
-                });
+            if (operations.length > 0) {
+                await List.bulkWrite(operations); // Cập nhật tất cả 1 lần
             }
 
-            // Check if project exists
-            const project = await Project.findById(projectId);
-            if (!project) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Không tìm thấy dự án',
-                });
-            }
-
-            // Check permissions
-            if (userId) {
-                const isMember = await this.checkProjectMember(projectId, userId);
-                const projectCreatorId = project.created_by.toString();
-                const currentUserId = userId.toString();
-                const isCreator = projectCreatorId === currentUserId;
-
-                if (!isMember && !isCreator) {
-                    return res.status(403).json({
-                        success: false,
-                        message: 'Bạn không có quyền sắp xếp lists trong dự án này',
-                    });
-                }
-            }
-
-            // Update positions
-            const updatePromises = listOrders.map(({ listId, position }) => {
-                return List.findByIdAndUpdate(listId, { position }, { new: true });
-            });
-
-            await Promise.all(updatePromises);
-
-            // Get updated lists
-            const updatedLists = await List.find({ project_id: projectId }).sort({ position: 1 });
-
-            return res.status(200).json({
-                success: true,
-                data: updatedLists,
-                message: 'Sắp xếp lists thành công',
-            });
+            res.status(200).json({ success: true, message: 'Đã cập nhật thứ tự List' });
         } catch (error) {
-            console.error('Error reordering lists:', error);
-            return res.status(500).json({
-                success: false,
-                message: 'Có lỗi xảy ra khi sắp xếp lists',
-            });
+            console.error('Lỗi khi sắp xếp List:', error);
+            res.status(500).json({ message: 'Lỗi server' });
         }
     }
 }
