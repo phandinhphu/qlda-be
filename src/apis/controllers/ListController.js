@@ -291,7 +291,7 @@ class ListController {
     async updateList(req, res) {
         try {
             const { listId } = req.params;
-            const { name, title, position } = req.body;
+            const { title, position } = req.body;
             const userId = req.user?._id;
 
             // Find list
@@ -327,8 +327,8 @@ class ListController {
             }
 
             // Update fields
-            if (name !== undefined || title !== undefined) {
-                const newTitle = name || title;
+            if (title !== undefined) {
+                const newTitle = title;
                 if (newTitle.trim().length === 0) {
                     return res.status(400).json({
                         success: false,

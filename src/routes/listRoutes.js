@@ -25,7 +25,7 @@ router.post('/:projectId', ListController.createList);
  * @desc    Cập nhật một List (thay đổi title, position)
  * @note    :id ở đây là ID của List (cột)
  */
-router.put('/:id', ListController.updateList);
+router.put('/:listId', ListController.updateList);
 
 /**
  * @route   DELETE /api/lists/:id
