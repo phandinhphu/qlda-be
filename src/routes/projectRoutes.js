@@ -5,8 +5,13 @@ const ListController = require('../apis/controllers/ListController');
 const ProjectController = require('../apis/controllers/ProjectController');
 
 /**
+ * @route   GET /api/projects/projecstUserJoined
+ * @desc    Lấy danh sách dự án mà user tạo
+ */
+router.get('/projectsUserJoined', authMiddleware, ProjectController.getProjectsUserJoined);
+/**
  * @route   GET /api/projects/user/:userId
- * @desc    Lấy danh sách dự án của User cụ thể
+ * @desc    Lấy danh sách dự án mà user tạo
  */
 router.get('/user/:userId', ProjectController.getProjectsByUser);
 

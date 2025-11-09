@@ -243,6 +243,104 @@ class ProjectController {
             });
         }
     }
+
+    async getProjectsUserJoined(req, res) {
+        try {
+            const userId = req.user._id;
+            const memberships = await ProjectMember.find({ user_id: userId }).select('project_id');
+            const projectIds = memberships.map((m) => m.project_id);
+
+            // 2. Dùng Aggregation để lấy Project và tính toán %
+            const projectsWithStats = await Project.aggregate([
+                // Chỉ lấy các dự án mà user là thành viên
+                {
+                    $match: { _id: { $in: projectIds } },
+                },
+                // Lấy tất cả List (cột) thuộc về dự án
+                {
+                    $lookup: {
+                        from: 'lists', // Tên collection của List
+                        localField: '_id',
+                        foreignField: 'project_id',
+                        as: 'lists',
+                    },
+                },
+                {
+                    $lookup: {
+                        from: 'tasks', // Tên collection của Task
+                        let: {
+                            // 1. Tạo một biến 'listIds' (lấy từ mảng 'lists' của bước trước)
+                            listIds: '$lists._id',
+                        },
+                        pipeline: [
+                            // 2. Chạy một pipeline con trên collection 'tasks'
+                            {
+                                $match: {
+                                    $expr: {
+                                        $and: [
+                                            // Điều kiện 1: task.list_id phải nằm trong mảng [$$listIds]
+                                            { $in: ['$list_id', '$$listIds'] },
+
+                                            // Điều kiện 2: task.assigned_to phải là userId
+                                            // (userId này là biến JS bạn có trong hàm controller)
+                                            { $eq: ['$assigned_to', userId] },
+                                        ],
+                                    },
+                                },
+                            },
+                        ],
+                        as: 'tasks', // Tên mảng kết quả
+                    },
+                },
+                // Thêm các trường tính toán %
+                {
+                    $addFields: {
+                        totalTasks: { $size: '$tasks' },
+                        doneTasks: {
+                            $size: {
+                                $filter: {
+                                    input: '$tasks',
+                                    as: 'task',
+                                    cond: { $eq: ['$$task.status', 'done'] }, // Giả sử status là 'done'
+                                },
+                            },
+                        },
+                    },
+                },
+                {
+                    $addFields: {
+                        percentage: {
+                            // Chia (tránh chia cho 0)
+                            $cond: [
+                                { $eq: ['$totalTasks', 0] },
+                                100, // Nếu totalTasks = 0, % = 0
+                                { $multiply: [{ $divide: ['$doneTasks', '$totalTasks'] }, 100] },
+                            ],
+                        },
+                    },
+                },
+                // Chỉ chọn lọc các trường cần thiết trả về
+                {
+                    $project: {
+                        project_name: 1,
+                        description: 1,
+                        created_by: 1,
+                        percentage: { $round: ['$percentage', 0] }, // Làm tròn %
+                        totalTasks: 1,
+                        doneTasks: 1,
+                        // Bỏ đi mảng 'lists' và 'tasks' (đã dùng xong)
+                    },
+                },
+                {
+                    $sort: { project_name: 1 }, // Sắp xếp theo tên
+                },
+            ]);
+            res.status(200).json(projectsWithStats);
+        } catch (error) {
+            console.error('Lỗi khi lấy dự án của user:', error);
+            res.status(500).json({ message: 'Lỗi server' });
+        }
+    }
 }
 
 const controller = new ProjectController();
@@ -255,4 +353,5 @@ module.exports = {
     updateProject: controller.updateProject.bind(controller),
     deleteProject: controller.deleteProject.bind(controller),
     getProjectsByUser: controller.getProjectsByUser.bind(controller),
+    getProjectsUserJoined: controller.getProjectsUserJoined.bind(controller),
 };
