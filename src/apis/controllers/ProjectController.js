@@ -322,6 +322,7 @@ class ProjectController {
                 // Chỉ chọn lọc các trường cần thiết trả về
                 {
                     $project: {
+                        project_id: '$_id',
                         project_name: 1,
                         description: 1,
                         created_by: 1,
