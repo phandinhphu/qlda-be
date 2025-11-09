@@ -10,7 +10,6 @@ route.post('/register', AuthController.register);
 route.post('/login', AuthController.login);
 route.post('/logout', AuthController.logout);
 route.get('/me', authMiddleware, AuthController.getMe);
-
 // Google authentication
 route.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
@@ -25,7 +24,7 @@ route.get('/google/callback', passport.authenticate('google', { session: false }
         sameSite: 'None',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
     });
-    res.redirect(`${FRONTEND_URL}/`);
+    res.redirect(`${FRONTEND_URL}/projects`);
 });
 
 route.post('/forgot-password', AuthController.forgotPassword);
