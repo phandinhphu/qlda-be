@@ -3,6 +3,9 @@ const Task = require('../models/Task');
 const List = require('../models/List');
 const Project = require('../models/Project');
 const ProjectMember = require('../models/ProjectMember');
+const TaskStep = require('../models/TaskStep');
+const TaskLabel = require('../models/TaskLabel');
+const TaskComment = require('../models/TaskComment');
 const User = require('../models/User');
 
 class TaskController {
@@ -522,6 +525,67 @@ class TaskController {
             return res.status(500).json({
                 success: false,
                 message: 'Có lỗi xảy ra khi di chuyển task',
+            });
+        }
+    }
+
+    // [GET] /api/tasks/:taskId/steps - Lấy tất cả steps của task
+    async getTaskSteps(req, res) {
+        try {
+            const { taskId } = req.params;
+            console.log('taskId:', taskId);
+            // Find task
+            const task = await Task.findById(taskId);
+            if (!task) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy task',
+                });
+            }
+
+            // Get all steps
+            const steps = await TaskStep.find({ task_id: taskId }).sort({ position: 1 });
+            return res.status(200).json({
+                success: true,
+                data: steps,
+                message: 'Lấy danh sách steps thành công',
+            });
+        } catch (error) {
+            console.error('Error getting task steps:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi lấy danh sách steps',
+            });
+        }
+    }
+
+    // [PATCH] /api/tasks/:taskId/steps/:stepId/toggle-complete - Đánh dấu hoàn thành/chưa hoàn thành step
+    async toggleStepComplete(req, res) {
+        try {
+            const { taskId, stepId } = req.params;
+
+            // Find step
+            const step = await TaskStep.findOne({ _id: stepId, task_id: taskId });
+            if (!step) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy step',
+                });
+            }
+
+            // Toggle is_completed
+            step.is_completed = !step.is_completed;
+            await step.save();
+            return res.status(200).json({
+                success: true,
+                data: step,
+                message: `Step đã được đánh dấu ${step.is_completed ? 'hoàn thành' : 'chưa hoàn thành'}`,
+            });
+        } catch (error) {
+            console.error('Error toggling step complete:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi cập nhật trạng thái step',
             });
         }
     }

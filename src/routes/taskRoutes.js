@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const TaskController = require('../apis/controllers/TaskController.js');
+const verifyToken = require('../middleware/auth.js');
+
+router.use(verifyToken);
 
 /**
  * @route   [POST] /api/tasks
@@ -49,4 +52,17 @@ router.post('/:id/labels', TaskController.addLabel);
  * @dest thêm comments vào task
  */
 router.post('/:id/comments', TaskController.addComment);
+
+/**
+ * @route [GET] /api/tasks/:taskId/steps
+ * @desc  Lấy tất cả các bước (steps) của task
+ */
+router.get('/:taskId/steps', TaskController.getTaskSteps);
+
+/**
+ * @route [PATCH] /api/tasks/:taskId/steps/:stepId/toggle-complete
+ * @desc  Đánh dấu hoàn thành/chưa hoàn thành một bước (step) của task
+ */
+router.patch('/:taskId/steps/:stepId/toggle-completed', TaskController.toggleStepComplete);
+
 module.exports = router;
