@@ -14,15 +14,50 @@ class ProjectController {
             const userId = req.params.userId;
 
             // Tìm tất cả dự án mà trường 'created_by' khớp với userId
-            const projects = await Project.find({ created_by: userId })
-                .select('-description') // Không cần mô tả dài cho danh sách
-                .sort({ created_at: -1 }); // Dự án mới nhất lên đầu
+            const projects = await Project.find({ created_by: userId }).sort({ created_at: -1 }); // Dự án mới nhất lên đầu
 
             return res.status(200).json(projects);
         } catch (error) {
             console.error('Lỗi khi tải dự án:', error);
             // Trả về lỗi 500 nếu có lỗi server hoặc DB
             return res.status(500).json({ message: 'Lỗi server khi tải dự án.' });
+        }
+    }
+
+    /**
+     * @route   GET /api/projects/search?name=abc
+     * @desc    Tìm kiếm dự án theo tên (theo người dùng hiện tại)
+     */
+    async searchProjectsByName(req, res) {
+        try {
+            const userId = req.user?._id;
+            const { name = '' } = req.query;
+            if (!userId) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Không xác thực. Vui lòng đăng nhập lại',
+                });
+            }
+            const keyword = name.toString().trim();
+            const condition = {
+                created_by: userId,
+                ...(keyword ? { project_name: { $regex: new RegExp(keyword, 'i') } } : {}),
+            };
+            const projects = await Project.find(condition)
+                .populate('created_by', 'name email avatar_url')
+                .sort({ created_at: -1 });
+
+            return res.status(200).json({
+                success: true,
+                data: projects,
+                message: 'Tìm kiếm dự án thành công',
+            });
+        } catch (error) {
+            console.error('Error searching projects:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi tìm kiếm dự án',
+            });
         }
     }
 
@@ -355,4 +390,5 @@ module.exports = {
     deleteProject: controller.deleteProject.bind(controller),
     getProjectsByUser: controller.getProjectsByUser.bind(controller),
     getProjectsUserJoined: controller.getProjectsUserJoined.bind(controller),
+    searchProjectsByName: controller.searchProjectsByName.bind(controller),
 };
