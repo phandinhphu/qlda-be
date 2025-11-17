@@ -46,6 +46,10 @@ class AuthController {
                 return res.status(400).json({ message: 'Email hoặc mật khẩu không hợp lệ' });
             }
 
+            if (user.password == null) {
+                return res.status(400).json({ message: 'Vui lòng đăng nhập bằng phương thức khác' });
+            }
+
             // Check password
             const isPasswordValid = await bcrypt.compare(password, user.password);
             if (!isPasswordValid) {
@@ -70,6 +74,7 @@ class AuthController {
 
             res.json({ message: 'Đăng nhập thành công' });
         } catch (error) {
+            console.error(error);
             return res.status(500).json({ message: 'Có lỗi xảy ra. Vui lòng thử lại sau!!!' });
         }
     }
