@@ -1,1 +1,0 @@
-// chứa config của project

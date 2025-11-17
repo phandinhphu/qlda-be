@@ -1,0 +1,530 @@
+const mongoose = require('mongoose');
+const Task = require('../models/Task');
+const List = require('../models/List');
+const Project = require('../models/Project');
+const ProjectMember = require('../models/ProjectMember');
+const User = require('../models/User');
+
+class TaskController {
+    // [GET] /api/tasks/:id - Lấy chi tiết một task
+    async getTaskById(req, res) {
+        const { id } = req.params;
+
+        try {
+            const task = await Task.findById(id).populate('assigned_to', 'name email avatar_url');
+
+            if (!task) {
+                return res.status(404).json({ message: 'Không tìm thấy task' });
+            }
+
+            return res.status(200).json(task);
+        } catch (error) {
+            return res.status(500).json({ message: 'Lỗi server' });
+        }
+    }
+    // Helper: Check if user is member of project
+    async checkProjectMember(projectId, userId) {
+        if (!userId) return false;
+        const member = await ProjectMember.findOne({
+            project_id: projectId,
+            user_id: userId,
+        });
+        return !!member;
+    }
+
+    // Helper: Get projectId from listId
+    async getProjectIdFromList(listId) {
+        const list = await List.findById(listId).populate('project_id');
+        if (!list || !list.project_id) return null;
+        return list.project_id._id || list.project_id;
+    }
+
+    // [GET] /api/lists/:listId/tasks - Lấy tất cả tasks trong list
+    async getTasksByList(req, res) {
+        try {
+            const { listId } = req.params;
+            const userId = req.user?._id;
+
+            // Check if list exists
+            const list = await List.findById(listId).populate('project_id');
+            if (!list) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy list',
+                });
+            }
+
+            const project = list.project_id;
+            if (!project) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy dự án liên quan',
+                });
+            }
+
+            // Check permissions
+            if (userId) {
+                const isMember = await this.checkProjectMember(project._id.toString(), userId);
+                const projectCreatorId = project.created_by.toString();
+                const currentUserId = userId.toString();
+                const isCreator = projectCreatorId === currentUserId;
+
+                if (!isMember && !isCreator) {
+                    return res.status(403).json({
+                        success: false,
+                        message: 'Bạn không có quyền truy cập tasks trong list này',
+                    });
+                }
+            }
+
+            // Get all tasks
+            const tasks = await Task.find({ list_id: listId })
+                .populate('assigned_to', 'name email avatar_url')
+                .sort({ position: 1 });
+
+            return res.status(200).json({
+                success: true,
+                data: tasks,
+                message: 'Lấy danh sách tasks thành công',
+            });
+        } catch (error) {
+            console.error('Error getting tasks:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi lấy danh sách tasks',
+            });
+        }
+    }
+
+    // [POST] /api/tasks - Tạo task mới
+    async createTask(req, res) {
+        const { title, list_id, description, assigned_to, due_date, priority } = req.body;
+
+        // 1. Kiểm tra dữ liệu đầu vào
+        if (!title || !list_id) {
+            return res.status(400).json({ message: 'Vui lòng cung cấp title và list_id' });
+        }
+
+        try {
+            // 2. Kiểm tra xem List có tồn tại không
+            const list = await List.findById(list_id);
+            if (!list) {
+                return res.status(404).json({ message: 'Không tìm thấy danh sách (List)' });
+            }
+
+            // 3. Tạo Task mới
+            const newTask = new Task({
+                title,
+                list_id,
+                description,
+                assigned_to, // ID của user được gán
+                due_date,
+                priority,
+                // Giả sử bạn muốn gán người tạo task (lấy từ middleware)
+                // reporter_id: req.user._id
+            });
+
+            await newTask.save();
+
+            return res.status(201).json(newTask);
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Lỗi server' });
+        }
+    }
+
+    // [PUT] /api/tasks/:taskId - Cập nhật task
+    async updateTask(req, res) {
+        try {
+            const { id } = req.params;
+            const updateData = req.body;
+
+            await Task.findByIdAndUpdate(id, updateData);
+            return res.status(200).json({
+                message: 'Cập nhật task thành công',
+            });
+        } catch (error) {
+            console.error('Error edit task:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi edit task',
+            });
+        }
+    }
+
+    // [DELETE] /api/tasks/:taskId - Xóa task
+    async deleteTask(req, res) {
+        try {
+            const { id } = req.params;
+            await Task.findByIdAndDelete(id);
+            return res.status(200).json({
+                message: 'Xóa task thành công',
+            });
+        } catch (error) {
+            console.error('Error deleting task:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi xóa task',
+            });
+        }
+    }
+
+    // [PATCH] /api/tasks/:taskId/toggle-complete - Đánh dấu hoàn thành/chưa hoàn thành
+    async toggleTaskComplete(req, res) {
+        try {
+            const { taskId } = req.params;
+            const userId = req.user?._id;
+
+            // Find task
+            const task = await Task.findById(taskId);
+            if (!task) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy task',
+                });
+            }
+
+            // Get projectId for permission check
+            const projectId = await this.getProjectIdFromList(task.list_id);
+            if (!projectId) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy dự án liên quan',
+                });
+            }
+
+            // Check permissions
+            if (userId) {
+                const project = await Project.findById(projectId);
+                if (project) {
+                    const isMember = await this.checkProjectMember(projectId.toString(), userId);
+                    const projectCreatorId = new mongoose.Types.ObjectId(project.created_by);
+                    const currentUserId = new mongoose.Types.ObjectId(userId);
+                    const isCreator = projectCreatorId.equals(currentUserId);
+
+                    if (!isMember && !isCreator) {
+                        return res.status(403).json({
+                            success: false,
+                            message: 'Bạn không có quyền cập nhật task này',
+                        });
+                    }
+                }
+            }
+
+            // Toggle is_completed
+            task.is_completed = !task.is_completed;
+
+            // Also update status if needed
+            if (task.is_completed && task.status !== 'done') {
+                task.status = 'done';
+            } else if (!task.is_completed && task.status === 'done') {
+                task.status = 'todo';
+            }
+
+            const updatedTask = await task.save();
+            await updatedTask.populate('assigned_to', 'name email avatar_url');
+
+            return res.status(200).json({
+                success: true,
+                data: updatedTask,
+                message: `Task đã được đánh dấu ${updatedTask.is_completed ? 'hoàn thành' : 'chưa hoàn thành'}`,
+            });
+        } catch (error) {
+            console.error('Error toggling task complete:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi cập nhật trạng thái task',
+            });
+        }
+    }
+
+    // [PUT] /api/lists/:listId/tasks/reorder - Sắp xếp tasks trong list
+    async reorderTasks(req, res) {
+        try {
+            const { listId } = req.params;
+            const { taskOrders } = req.body; // Array of { taskId, position }
+            const userId = req.user?._id;
+
+            // Validation
+            if (!Array.isArray(taskOrders) || taskOrders.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Danh sách thứ tự không hợp lệ',
+                });
+            }
+
+            // Check if list exists
+            const list = await List.findById(listId).populate('project_id');
+            if (!list) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy list',
+                });
+            }
+
+            const project = list.project_id;
+            if (!project) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy dự án liên quan',
+                });
+            }
+
+            // Check permissions
+            if (userId) {
+                const isMember = await this.checkProjectMember(project._id.toString(), userId);
+                const projectCreatorId = new mongoose.Types.ObjectId(project.created_by);
+                const currentUserId = new mongoose.Types.ObjectId(userId);
+                const isCreator = projectCreatorId.equals(currentUserId);
+
+                if (!isMember && !isCreator) {
+                    return res.status(403).json({
+                        success: false,
+                        message: 'Bạn không có quyền sắp xếp tasks trong list này',
+                    });
+                }
+            }
+
+            // Update positions
+            const updatePromises = taskOrders.map(({ taskId, position }) => {
+                return Task.findByIdAndUpdate(taskId, { position }, { new: true });
+            });
+
+            await Promise.all(updatePromises);
+
+            // Get updated tasks
+            const updatedTasks = await Task.find({ list_id: listId })
+                .populate('assigned_to', 'name email avatar_url')
+                .sort({ position: 1 });
+
+            return res.status(200).json({
+                success: true,
+                data: updatedTasks,
+                message: 'Sắp xếp tasks thành công',
+            });
+        } catch (error) {
+            console.error('Error reordering tasks:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi sắp xếp tasks',
+            });
+        }
+    }
+    /**
+     * @route   [POST] /api/tasks/:id/steps
+     * @desc    Thêm một step (công việc con)
+     * @body    { title: "Tên step" }
+     */
+    async addStep(req, res) {
+        const { id } = req.params; // ID của Task
+        const { title } = req.body;
+
+        if (!title) {
+            return res.status(400).json({ message: 'Vui lòng cung cấp title cho step' });
+        }
+
+        try {
+            // 1. Kiểm tra Task cha có tồn tại không
+            const task = await Task.findById(id);
+            if (!task) {
+                return res.status(404).json({ message: 'Không tìm thấy task' });
+            }
+
+            // 2. Lấy vị trí (position) cho step mới
+            const stepCount = await TaskStep.countDocuments({ task_id: id });
+
+            // 3. Tạo một document mới trong collection 'task_steps'
+            const newStep = new TaskStep({
+                task_id: id,
+                title: title,
+                position: stepCount, // Dùng số lượng step hiện tại làm vị trí
+            });
+
+            await newStep.save();
+            return res.status(201).json(newStep);
+        } catch (error) {
+            return res.status(500).json({ message: 'Lỗi server' });
+        }
+    }
+
+    /**
+     * @route   [POST] /api/tasks/:id/labels
+     * @desc    Thêm một label
+     * @body    { label_name: "Tên label", color: "#..." }
+     */
+    async addLabel(req, res) {
+        const { id } = req.params; // ID của Task
+        const { label_name, color } = req.body;
+
+        if (!label_name) {
+            return res.status(400).json({ message: 'Vui lòng cung cấp label_name' });
+        }
+
+        try {
+            const task = await Task.findById(id);
+            if (!task) {
+                return res.status(404).json({ message: 'Không tìm thấy task' });
+            }
+
+            // (Nâng cao) Kiểm tra label này đã tồn tại cho task này chưa
+            const existingLabel = await TaskLabel.findOne({ task_id: id, label_name });
+            if (existingLabel) {
+                return res.status(400).json({ message: 'Label này đã tồn tại' });
+            }
+
+            // 2. Tạo document mới trong collection 'task_labels'
+            const newLabel = new TaskLabel({
+                task_id: id,
+                label_name,
+                color, // Sẽ dùng màu default trong schema nếu không được cung cấp
+            });
+
+            await newLabel.save();
+            return res.status(201).json(newLabel);
+        } catch (error) {
+            return res.status(500).json({ message: 'Lỗi server' });
+        }
+    }
+
+    /**
+     * @route   [POST] /api/tasks/:id/comments
+     * @desc    Thêm một bình luận
+     * @body    { content: "Nội dung bình luận" }
+     */
+    async addComment(req, res) {
+        const { id } = req.params; // ID của Task
+        const { content } = req.body;
+        const userId = req.user._id; // Lấy từ authMiddleware
+
+        if (!content) {
+            return res.status(400).json({ message: 'Vui lòng nhập nội dung bình luận' });
+        }
+
+        try {
+            const task = await Task.findById(id);
+            if (!task) {
+                return res.status(404).json({ message: 'Không tìm thấy task' });
+            }
+
+            // 2. Tạo document mới trong collection 'task_comments'
+            const newComment = new TaskComment({
+                task_id: id,
+                user_id: userId,
+                content: content,
+            });
+
+            await newComment.save();
+
+            // 3. Trả về comment vừa tạo (kèm thông tin user)
+            // Vì newComment là một document, ta có thể populate nó
+            const populatedComment = await newComment.populate('user_id', 'name email avatar_url');
+
+            return res.status(201).json(populatedComment);
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Lỗi server' });
+        }
+    }
+    // [PUT] /api/tasks/:taskId/move - Di chuyển task sang list khác
+    async moveTask(req, res) {
+        try {
+            const { taskId } = req.params;
+            const { targetListId, listId, position } = req.body;
+            const userId = req.user?._id;
+
+            // Use targetListId or listId
+            const finalTargetListId = targetListId || listId;
+
+            if (!finalTargetListId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'List đích là bắt buộc',
+                });
+            }
+
+            // Find task
+            const task = await Task.findById(taskId);
+            if (!task) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy task',
+                });
+            }
+
+            // Validate target list
+            const targetList = await List.findById(finalTargetListId).populate('project_id');
+            if (!targetList) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy list đích',
+                });
+            }
+
+            // Get source and target project IDs
+            const sourceProjectId = await this.getProjectIdFromList(task.list_id);
+            const targetProjectId = await this.getProjectIdFromList(finalTargetListId);
+
+            if (!sourceProjectId || !targetProjectId) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy dự án liên quan',
+                });
+            }
+
+            // Check if both lists are in same project
+            if (sourceProjectId.toString() !== targetProjectId.toString()) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Không thể di chuyển task sang list của dự án khác',
+                });
+            }
+
+            // Check permissions
+            if (userId) {
+                const project = await Project.findById(targetProjectId);
+                if (project) {
+                    const isMember = await this.checkProjectMember(targetProjectId.toString(), userId);
+                    const projectCreatorId = new mongoose.Types.ObjectId(project.created_by);
+                    const currentUserId = new mongoose.Types.ObjectId(userId);
+                    const isCreator = projectCreatorId.equals(currentUserId);
+
+                    if (!isMember && !isCreator) {
+                        return res.status(403).json({
+                            success: false,
+                            message: 'Bạn không có quyền di chuyển task này',
+                        });
+                    }
+                }
+            }
+
+            // Update list_id
+            task.list_id = finalTargetListId;
+
+            // Handle position
+            if (position !== undefined && position !== null) {
+                task.position = position;
+            } else {
+                // Get max position in target list
+                const maxTask = await Task.findOne({ list_id: finalTargetListId }).sort({ position: -1 });
+                task.position = maxTask ? maxTask.position + 1 : 0;
+            }
+
+            const updatedTask = await task.save();
+            await updatedTask.populate('assigned_to', 'name email avatar_url');
+
+            return res.status(200).json({
+                success: true,
+                data: updatedTask,
+                message: 'Di chuyển task thành công',
+            });
+        } catch (error) {
+            console.error('Error moving task:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi di chuyển task',
+            });
+        }
+    }
+}
+
+module.exports = new TaskController(); // Xuất ra một instance để có thể gọi trực tiếp

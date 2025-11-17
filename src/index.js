@@ -4,11 +4,15 @@ const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const helmet = require('helmet');
 const routes = require('./routes');
+const passport = require('passport');
 const { FRONTEND_URL, PORT } = require('./util/constants');
 const mongoose = require('mongoose');
+const connectDB = require('./config/db');
+
+require('./config/passport')(passport);
 
 const app = express();
-const port = PORT || 5000;
+const port = PORT;
 
 app.use(
     cors({
@@ -24,12 +28,19 @@ app.use(
         crossOriginResourcePolicy: false,
     }),
 );
+app.use(passport.initialize());
 
 // Routes init
 app.use('/api', routes);
 
-app.listen(port, () => {
-    console.log(`Server is running on port: ${port}`);
+app.get('/health-check', (req, res) => {
+    res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+connectDB().then(() => {
+    app.listen(port, () => {
+        console.log(`Server is running on port: ${port}`);
+    });
 });
 
 let isShuttingDown = false; // Cờ kiểm soát shutdown
