@@ -12,6 +12,7 @@ module.exports = {
         '/node_modules/',
         'TEMPLATE.test.js',
     ],
+    setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
     verbose: true,
     forceExit: true,
     clearMocks: true,

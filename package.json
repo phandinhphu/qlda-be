@@ -6,9 +6,9 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon --inspect src/index.js",
-    "test": "jest --setupFilesAfterEnv=./tests/setup.js",
-    "test:watch": "jest --watch --setupFilesAfterEnv=./tests/setup.js",
-    "test:coverage": "jest --coverage --setupFilesAfterEnv=./tests/setup.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "beautiful": "lint-staged",
     "prepare": "husky"
   },
