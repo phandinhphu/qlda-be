@@ -21,7 +21,7 @@ module.exports = async (req, res, next) => {
         req.user = await userSchema.findById(decoded.id).select('-password');
 
         if (!req.user) {
-            return res.status(401).json({ message: 'User not found' });
+            return res.status(404).json({ message: 'User not found' });
         }
 
         next(); // Proceed to the next middleware or route handler
