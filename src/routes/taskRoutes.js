@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const TaskController = require('../apis/controllers/TaskController.js');
 const verifyToken = require('../middleware/auth.js');
+const upload = require('../middleware/upload.js');
 
 router.use(verifyToken);
 
@@ -64,5 +65,17 @@ router.get('/:taskId/steps', TaskController.getTaskSteps);
  * @desc  Đánh dấu hoàn thành/chưa hoàn thành một bước (step) của task
  */
 router.patch('/:taskId/steps/:stepId/toggle-completed', TaskController.toggleStepComplete);
+
+/**
+ * @route [POST] /api/tasks/:taskId/uploads
+ * @dest thực hiện uploads file
+ */
+router.post('/:taskId/uploads', upload.single('file'), TaskController.uploadFile);
+
+/**
+ * @route [GET] /api/tasks/:taskId/files
+ * @dest lấy các file của task
+ */
+router.get('/:taskId/files', TaskController.getTaskFiles);
 
 module.exports = router;
