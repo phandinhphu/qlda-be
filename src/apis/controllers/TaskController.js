@@ -6,6 +6,7 @@ const ProjectMember = require('../models/ProjectMember');
 const TaskStep = require('../models/TaskStep');
 const TaskLabel = require('../models/TaskLabel');
 const TaskComment = require('../models/TaskComment');
+const TaskFile = require('../models/TaskFile');
 const User = require('../models/User');
 
 class TaskController {
@@ -587,6 +588,57 @@ class TaskController {
                 success: false,
                 message: 'Có lỗi xảy ra khi cập nhật trạng thái step',
             });
+        }
+    }
+
+    // [POST] /api/tasks/:taskId/uploads
+    async uploadFile(req, res) {
+        try {
+            const { taskId } = req.params;
+            const userId = req.user._id;
+
+            // 1. Kiểm tra multer đã xử lý file chưa
+            if (!req.file) {
+                return res.status(400).json({ message: 'Vui lòng chọn file để tải lên.' });
+            }
+
+            // 2. Tạo đường dẫn URL để frontend truy cập
+            const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+
+            // 3. Lưu thông tin vào MongoDB
+            const newTaskFile = new TaskFile({
+                task_id: taskId,
+                file_url: fileUrl,
+                uploaded_by: userId,
+            });
+
+            await newTaskFile.save();
+            await newTaskFile.populate('uploaded_by');
+            // 4. Trả về dữ liệu
+            return res.status(201).json({
+                success: true,
+                data: newTaskFile,
+                message: 'Upload file thành công',
+            });
+        } catch (error) {
+            console.error('Lỗi khi upload file:', error);
+            // Xóa file nếu có lỗi db để tránh rác (optional)
+            return res.status(500).json({ message: 'Lỗi server khi xử lý file.' });
+        }
+    }
+
+    async getTaskFiles(req, res) {
+        try {
+            const { taskId } = req.params;
+            const files = await TaskFile.find({ task_id: taskId }).populate('uploaded_by');
+
+            return res.status(200).json({
+                success: true,
+                data: files,
+            });
+        } catch (error) {
+            console.error('Lỗi khi lấy danh sách file:', error);
+            return res.status(500).json({ message: 'Lỗi server' });
         }
     }
 }
