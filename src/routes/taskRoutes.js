@@ -19,6 +19,24 @@ router.post('/', TaskController.createTask);
 router.get('/list/:list_id', TaskController.getTasksByList);
 
 /**
+ * @route   [GET] /api/tasks/:taskId/members
+ * @desc    Lấy danh sách thành viên của task
+ */
+router.get('/:taskId/members', TaskController.getTaskMembers);
+
+/**
+ * @route   [POST] /api/tasks/:taskId/members
+ * @desc    Gán thành viên vào task
+ */
+router.post('/:taskId/members', TaskController.addTaskMember);
+
+/**
+ * @route   [DELETE] /api/tasks/:taskId/members/:userId
+ * @desc    Xóa thành viên khỏi task
+ */
+router.delete('/:taskId/members/:userId', TaskController.removeTaskMember);
+
+/**
  * @route   [GET] /api/tasks/:id
  * @desc    Lấy chi tiết một task
  */
