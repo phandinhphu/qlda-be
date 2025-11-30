@@ -49,6 +49,24 @@ router.post('/:id/steps', TaskController.addStep);
 router.post('/:id/labels', TaskController.addLabel);
 
 /**
+ * @route [GET] /api/tasks/:taskId/labels
+ * @desc Lấy danh sách labels của task
+ */
+router.get('/:taskId/labels', TaskController.getTaskLabels);
+
+/**
+ * @route [PUT] /api/tasks/:taskId/labels/:labelId
+ * @desc Cập nhật label (tên, màu)
+ */
+router.put('/:taskId/labels/:labelId', TaskController.updateLabel);
+
+/**
+ * @route [DELETE] /api/tasks/:taskId/labels/:labelId
+ * @desc Xóa label khỏi task
+ */
+router.delete('/:taskId/labels/:labelId', TaskController.deleteLabel);
+
+/**
  * @route [POST] /api/tasks/:id/comments
  * @dest thêm comments vào task
  */

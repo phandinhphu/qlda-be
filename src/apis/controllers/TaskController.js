@@ -143,10 +143,19 @@ class TaskController {
             const { id } = req.params;
             const updateData = req.body;
 
-            await Task.findByIdAndUpdate(id, updateData);
-            return res.status(200).json({
-                message: 'Cập nhật task thành công',
-            });
+            const updatedTask = await Task.findByIdAndUpdate(id, updateData, { new: true }).populate(
+                'assigned_to',
+                'name email avatar_url',
+            );
+
+            if (!updatedTask) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy task',
+                });
+            }
+
+            return res.status(200).json(updatedTask);
         } catch (error) {
             console.error('Error edit task:', error);
             return res.status(500).json({
@@ -380,13 +389,130 @@ class TaskController {
             const newLabel = new TaskLabel({
                 task_id: id,
                 label_name,
-                color, // Sẽ dùng màu default trong schema nếu không được cung cấp
+                color: color || '#808080', // Sẽ dùng màu default trong schema nếu không được cung cấp
             });
 
             await newLabel.save();
             return res.status(201).json(newLabel);
         } catch (error) {
             return res.status(500).json({ message: 'Lỗi server' });
+        }
+    }
+
+    /**
+     * @route   [GET] /api/tasks/:taskId/labels
+     * @desc    Lấy danh sách labels của task
+     */
+    async getTaskLabels(req, res) {
+        try {
+            const { taskId } = req.params;
+
+            // Find task
+            const task = await Task.findById(taskId);
+            if (!task) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy task',
+                });
+            }
+
+            // Get all labels
+            const labels = await TaskLabel.find({ task_id: taskId });
+            return res.status(200).json({
+                success: true,
+                data: labels,
+                message: 'Lấy danh sách labels thành công',
+            });
+        } catch (error) {
+            console.error('Error getting task labels:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi lấy danh sách labels',
+            });
+        }
+    }
+
+    /**
+     * @route   [PUT] /api/tasks/:taskId/labels/:labelId
+     * @desc    Cập nhật label (tên, màu)
+     * @body    { label_name: "Tên mới", color: "#..." }
+     */
+    async updateLabel(req, res) {
+        try {
+            const { taskId, labelId } = req.params;
+            const { label_name, color } = req.body;
+
+            // Find label
+            const label = await TaskLabel.findOne({ _id: labelId, task_id: taskId });
+            if (!label) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy label',
+                });
+            }
+
+            // Check if new label_name already exists (if changed)
+            if (label_name && label_name !== label.label_name) {
+                const existingLabel = await TaskLabel.findOne({
+                    task_id: taskId,
+                    label_name,
+                    _id: { $ne: labelId },
+                });
+                if (existingLabel) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Label này đã tồn tại',
+                    });
+                }
+            }
+
+            // Update label
+            if (label_name) label.label_name = label_name;
+            if (color) label.color = color;
+
+            await label.save();
+            return res.status(200).json({
+                success: true,
+                data: label,
+                message: 'Cập nhật label thành công',
+            });
+        } catch (error) {
+            console.error('Error updating label:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi cập nhật label',
+            });
+        }
+    }
+
+    /**
+     * @route   [DELETE] /api/tasks/:taskId/labels/:labelId
+     * @desc    Xóa label khỏi task
+     */
+    async deleteLabel(req, res) {
+        try {
+            const { taskId, labelId } = req.params;
+
+            // Find label
+            const label = await TaskLabel.findOne({ _id: labelId, task_id: taskId });
+            if (!label) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy label',
+                });
+            }
+
+            await TaskLabel.findByIdAndDelete(labelId);
+            return res.status(200).json({
+                success: true,
+                message: 'Xóa label thành công',
+            });
+        } catch (error) {
+            console.error('Error deleting label:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi xóa label',
+            });
         }
     }
 
