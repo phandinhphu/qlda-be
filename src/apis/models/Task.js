@@ -8,9 +8,9 @@ const taskSchema = new mongoose.Schema(
             required: true,
         },
         assigned_to: {
-            type: mongoose.Schema.Types.ObjectId,
+            type: [mongoose.Schema.Types.ObjectId],
             ref: 'User',
-            default: null,
+            default: [],
         },
         title: {
             type: String,

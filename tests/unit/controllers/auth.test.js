@@ -205,7 +205,7 @@ describe('Auth Controller Tests', () => {
             const response = await request(app)
                 .get('/auth/me')
                 .set('Cookie', ['token=invalid-token'])
-                .expect(500);
+                .expect(401);
 
             expect(response.body).toHaveProperty('message');
         });
@@ -219,7 +219,7 @@ describe('Auth Controller Tests', () => {
             const response = await request(app)
                 .get('/auth/me')
                 .set('Cookie', [`token=${token}`])
-                .expect(500);
+                .expect(404);
 
             expect(response.body).toHaveProperty('message');
         });
