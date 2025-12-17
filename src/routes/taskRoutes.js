@@ -91,6 +91,24 @@ router.delete('/:taskId/labels/:labelId', TaskController.deleteLabel);
 router.post('/:id/comments', TaskController.addComment);
 
 /**
+ * @route [GET] /api/tasks/:taskId/comments
+ * @desc Lấy danh sách comments của task
+ */
+router.get('/:taskId/comments', TaskController.getTaskComments);
+
+/**
+ * @route [PUT] /api/tasks/:taskId/comments/:commentId
+ * @desc Cập nhật comment
+ */
+router.put('/:taskId/comments/:commentId', TaskController.updateComment);
+
+/**
+ * @route [DELETE] /api/tasks/:taskId/comments/:commentId
+ * @desc Xóa comment
+ */
+router.delete('/:taskId/comments/:commentId', TaskController.deleteComment);
+
+/**
  * @route [GET] /api/tasks/:taskId/steps
  * @desc  Lấy tất cả các bước (steps) của task
  */

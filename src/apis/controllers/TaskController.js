@@ -560,6 +560,139 @@ class TaskController {
             return res.status(500).json({ message: 'Lỗi server' });
         }
     }
+
+    /**
+     * @route   [GET] /api/tasks/:taskId/comments
+     * @desc    Lấy danh sách comments của task
+     */
+    async getTaskComments(req, res) {
+        try {
+            const { taskId } = req.params;
+
+            // Find task
+            const task = await Task.findById(taskId);
+            if (!task) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy task',
+                });
+            }
+
+            // Get all comments with user info
+            const comments = await TaskComment.find({ task_id: taskId })
+                .populate('user_id', 'name email avatar_url')
+                .sort({ created_at: 1 });
+
+            return res.status(200).json({
+                success: true,
+                data: comments,
+                message: 'Lấy danh sách comments thành công',
+            });
+        } catch (error) {
+            console.error('Error getting task comments:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi lấy danh sách comments',
+            });
+        }
+    }
+
+    /**
+     * @route   [PUT] /api/tasks/:taskId/comments/:commentId
+     * @desc    Cập nhật comment
+     * @body    { content: "Nội dung mới" }
+     */
+    async updateComment(req, res) {
+        try {
+            const { taskId, commentId } = req.params;
+            const { content } = req.body;
+            const userId = req.user._id;
+
+            if (!content) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Vui lòng nhập nội dung bình luận',
+                });
+            }
+
+            // Find comment
+            const comment = await TaskComment.findOne({ _id: commentId, task_id: taskId });
+            if (!comment) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy comment',
+                });
+            }
+
+            // Check if user is the owner of the comment
+            if (comment.user_id.toString() !== userId.toString()) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Bạn không có quyền chỉnh sửa comment này',
+                });
+            }
+
+            // Update comment
+            comment.content = content;
+            await comment.save();
+
+            // Populate user info
+            await comment.populate('user_id', 'name email avatar_url');
+
+            return res.status(200).json({
+                success: true,
+                data: comment,
+                message: 'Cập nhật comment thành công',
+            });
+        } catch (error) {
+            console.error('Error updating comment:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi cập nhật comment',
+            });
+        }
+    }
+
+    /**
+     * @route   [DELETE] /api/tasks/:taskId/comments/:commentId
+     * @desc    Xóa comment
+     */
+    async deleteComment(req, res) {
+        try {
+            const { taskId, commentId } = req.params;
+            const userId = req.user._id;
+
+            // Find comment
+            const comment = await TaskComment.findOne({ _id: commentId, task_id: taskId });
+            if (!comment) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy comment',
+                });
+            }
+
+            // Check if user is the owner of the comment
+            if (comment.user_id.toString() !== userId.toString()) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Bạn không có quyền xóa comment này',
+                });
+            }
+
+            await TaskComment.findByIdAndDelete(commentId);
+
+            return res.status(200).json({
+                success: true,
+                message: 'Xóa comment thành công',
+            });
+        } catch (error) {
+            console.error('Error deleting comment:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi xóa comment',
+            });
+        }
+    }
     // [PUT] /api/tasks/:taskId/move - Di chuyển task sang list khác
     async moveTask(req, res) {
         try {
