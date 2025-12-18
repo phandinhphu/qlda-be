@@ -105,6 +105,22 @@ class TaskController {
         }
     }
 
+    // [GET] /api/tasks - Lấy tất cả tasks
+    async getAllTasks(req, res) {
+        const { project_id } = req.params;
+        try {
+            const lists = await List.find({ project_id }).select('_id');
+            const listIds = lists.map((list) => list._id);
+            const tasks = await Task.find({ list_id: { $in: listIds } })
+                .populate('assigned_to', 'name email avatar_url')
+                .populate('list_id', 'title');
+            return res.status(200).json(tasks);
+        } catch (error) {
+            console.error('Error getting all tasks:', error);
+            return res.status(500).json({ message: 'Lỗi server' });
+        }
+    }
+
     // [POST] /api/tasks - Tạo task mới
     async createTask(req, res) {
         const { title, list_id, description, assigned_to, due_date, priority } = req.body;

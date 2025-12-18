@@ -12,6 +12,7 @@ router.use(verifyToken);
  */
 router.post('/', TaskController.createTask);
 
+router.get('/project/:project_id', TaskController.getAllTasks);
 /**
  * @route   [GET] /api/tasks/list/:list_id
  * @desc    Lấy tất cả task thuộc về một List
