@@ -404,6 +404,36 @@ class TaskController {
         }
     }
 
+    async updateDueDate(req, res) {
+        try {
+            const { taskId } = req.params;
+            const { due_date } = req.body;
+            // Find task
+            const task = await Task.findById(taskId);
+            if (!task) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy task',
+                });
+            }
+            // Update due_date
+            task.due_date = due_date;
+            await task.save();
+            console.log('Updated task:', task);
+            return res.status(200).json({
+                success: true,
+                data: task,
+                message: 'Cập nhật ngày hết hạn thành công',
+            });
+        } catch (error) {
+            console.error('Error setting due date:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi cập nhật ngày hết hạn',
+            });
+        }
+    }
+
     /**
      * @route   [GET] /api/tasks/:taskId/labels
      * @desc    Lấy danh sách labels của task
