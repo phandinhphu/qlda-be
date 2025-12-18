@@ -1,5 +1,7 @@
 const ProjectMember = require('../models/ProjectMember');
 const User = require('../models/User');
+const Project = require('../models/Project');
+const ChatController = require('./ChatController');
 
 class ProjectMemberController {
     /**
@@ -69,11 +71,34 @@ class ProjectMemberController {
                 return res.status(400).json({ message: 'Thiếu userId' });
             }
 
+            // Kiểm tra project tồn tại
+            const project = await Project.findById(projectId);
+            if (!project) {
+                return res.status(404).json({ message: 'Không tìm thấy dự án' });
+            }
+
+            // Lấy thông tin owner (người tạo project)
+            const ownerId = project.created_by;
+
             const newMember = await ProjectMember.create({
                 project_id: projectId,
                 user_id: userId,
                 role: 'member',
             });
+
+            // Thêm member vào group chat room
+            try {
+                await ChatController.addMemberToGroupRoom(projectId, userId);
+            } catch (chatError) {
+                console.error('Error adding member to group chat:', chatError);
+            }
+
+            // Tạo direct chat room giữa owner và member mới
+            try {
+                await ChatController.createDirectChatRoom(projectId, ownerId, userId);
+            } catch (chatError) {
+                console.error('Error creating direct chat room:', chatError);
+            }
 
             return res.status(201).json({
                 message: 'Thêm thành viên thành công',

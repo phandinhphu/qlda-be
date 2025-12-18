@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const { JWT_SECRET, JWT_EXPIRES_IN } = require('../../util/constants');
 const sendEmail = require('../../util/email');
+const { token } = require('morgan');
 class AuthController {
     // [POST] /auth/register
     async register(req, res) {
@@ -72,7 +73,7 @@ class AuthController {
                 maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
             });
 
-            res.json({ message: 'Đăng nhập thành công' });
+            res.json({ message: 'Đăng nhập thành công', token });
         } catch (error) {
             console.error(error);
             return res.status(500).json({ message: 'Có lỗi xảy ra. Vui lòng thử lại sau!!!' });
@@ -178,6 +179,27 @@ class AuthController {
             res.status(200).json({ message: 'Đặt lại mật khẩu thành công!' });
         } catch (error) {
             res.status(500).json({ message: 'Có lỗi xảy ra.' });
+        }
+    }
+
+    // [GET] /auth/socket-token
+    async getSocketToken(req, res, next) {
+        try {
+            const userId = req.user._id;
+
+            // Generate JWT token for Socket.IO
+            const socketToken = jwt.sign(
+                {
+                    id: userId,
+                },
+                JWT_SECRET,
+                { expiresIn: JWT_EXPIRES_IN },
+            );
+
+            return res.status(200).json({ token: socketToken });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Có lỗi xảy ra. Vui lòng thử lại sau!!!' });
         }
     }
 }
