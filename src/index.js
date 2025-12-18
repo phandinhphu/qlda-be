@@ -20,7 +20,7 @@ const port = PORT;
 app.use(
     cors({
         credentials: true,
-        origin: FRONTEND_URL || 'http://localhost:3000',
+        origin: FRONTEND_URL || 'http://localhost:5173',
     }),
 );
 app.use(express.json({ limit: '10mb' }));

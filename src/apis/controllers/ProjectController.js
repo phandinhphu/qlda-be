@@ -328,8 +328,8 @@ class ProjectController {
                                             { $in: ['$list_id', '$$listIds'] },
 
                                             // Điều kiện 2: task.assigned_to phải là userId
-                                            // (userId này là biến JS bạn có trong hàm controller)
-                                            { $eq: ['$assigned_to', userId] },
+                                            // (userId này là biến JS có trong hàm controller)
+                                            { $in: [userId, '$assigned_to'] },
                                         ],
                                     },
                                 },

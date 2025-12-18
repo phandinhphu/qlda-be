@@ -12,6 +12,7 @@ router.use(verifyToken);
  */
 router.post('/', TaskController.createTask);
 
+router.get('/project/:project_id', TaskController.getAllTasks);
 /**
  * @route   [GET] /api/tasks/list/:list_id
  * @desc    Lấy tất cả task thuộc về một List
@@ -120,6 +121,7 @@ router.get('/:taskId/steps', TaskController.getTaskSteps);
  */
 router.patch('/:taskId/steps/:stepId/toggle-completed', TaskController.toggleStepComplete);
 
+router.patch('/:taskId/due-date', TaskController.updateDueDate);
 /**
  * @route [POST] /api/tasks/:taskId/uploads
  * @dest thực hiện uploads file

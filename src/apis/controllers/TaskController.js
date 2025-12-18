@@ -105,6 +105,22 @@ class TaskController {
         }
     }
 
+    // [GET] /api/tasks - Lấy tất cả tasks
+    async getAllTasks(req, res) {
+        const { project_id } = req.params;
+        try {
+            const lists = await List.find({ project_id }).select('_id');
+            const listIds = lists.map((list) => list._id);
+            const tasks = await Task.find({ list_id: { $in: listIds } })
+                .populate('assigned_to', 'name email avatar_url')
+                .populate('list_id', 'title');
+            return res.status(200).json(tasks);
+        } catch (error) {
+            console.error('Error getting all tasks:', error);
+            return res.status(500).json({ message: 'Lỗi server' });
+        }
+    }
+
     // [POST] /api/tasks - Tạo task mới
     async createTask(req, res) {
         const { title, list_id, description, assigned_to, due_date, priority } = req.body;
@@ -401,6 +417,36 @@ class TaskController {
             return res.status(201).json(newLabel);
         } catch (error) {
             return res.status(500).json({ message: 'Lỗi server' });
+        }
+    }
+
+    async updateDueDate(req, res) {
+        try {
+            const { taskId } = req.params;
+            const { due_date } = req.body;
+            // Find task
+            const task = await Task.findById(taskId);
+            if (!task) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy task',
+                });
+            }
+            // Update due_date
+            task.due_date = due_date;
+            await task.save();
+            console.log('Updated task:', task);
+            return res.status(200).json({
+                success: true,
+                data: task,
+                message: 'Cập nhật ngày hết hạn thành công',
+            });
+        } catch (error) {
+            console.error('Error setting due date:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi cập nhật ngày hết hạn',
+            });
         }
     }
 
