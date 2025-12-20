@@ -63,6 +63,7 @@ const initializeSocket = (server) => {
                 }
 
                 socket.join(`room:${roomId}`);
+                socket.currentRoomId = roomId;
                 console.log(`User ${socket.userId} joined room ${roomId}`);
 
                 socket.emit('joined_room', { roomId });
@@ -76,6 +77,7 @@ const initializeSocket = (server) => {
         socket.on('leave_room', (data) => {
             const { roomId } = data;
             socket.leave(`room:${roomId}`);
+            socket.currentRoomId = null;
             console.log(`User ${socket.userId} left room ${roomId}`);
         });
 
@@ -110,26 +112,27 @@ const initializeSocket = (server) => {
                 await newMessage.save();
                 await newMessage.populate('sender_id', 'name email avatar_url');
 
-                // Broadcast tin nhắn đến tất cả users trong room
-                io.to(`room:${roomId}`).emit('new_message', {
+                // Broadcast tin nhắn đến tất cả users trong room trừ sender
+                socket.to(`room:${roomId}`).emit('new_message', {
                     message: newMessage,
                 });
 
                 // Broadcast tin nhắn đến tất cả users không trong room nhưng có liên quan (ví dụ: được mention)
+                const sockets = await io.in(`room:${roomId}`).fetchSockets(); // Lấy tất cả sockets trong room
+                const usersInRoom = sockets.map((s) => s.userId);
+
                 const relatedMembers = await ChatRoomMember.find({
                     room_id: roomId,
                 }).populate('user_id', '_id');
 
-                relatedMembers.filter((member) => member.user_id._id.toString() !== socket.userId);
-
                 relatedMembers.forEach((member) => {
-                    if (
-                        !socket.rooms.has(`user:${member.user_id._id.toString()}`) &&
-                        member.user_id._id.toString() !== socket.userId
-                    ) {
+                    const userId = member.user_id._id.toString();
+
+                    if (!usersInRoom.includes(userId) && userId !== socket.userId) {
                         io.to(`user:${member.user_id._id.toString()}`).emit('new_message', {
                             message: newMessage,
                         });
+                        console.log(`Message notification sent to user ${member.user_id._id.toString()}`);
                     }
                 });
 
