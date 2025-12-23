@@ -15,6 +15,12 @@ router.get('/projectsUserJoined', authMiddleware, ProjectController.getProjectsU
  */
 router.get('/user/:userId', ProjectController.getProjectsByUser);
 
+/**
+ * @route   GET /api/projects/search
+ * @desc    Tìm kiếm dự án theo tên
+ */
+router.get('/search', authMiddleware, ProjectController.searchProjectsByName);
+
 router.get('/', authMiddleware, ProjectController.getAllProjects);
 router.post('/', authMiddleware, ProjectController.createProject);
 
