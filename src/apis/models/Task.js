@@ -30,10 +30,7 @@ const taskSchema = new mongoose.Schema(
             type: Date,
             default: null,
         },
-        is_reminded: {
-            type: Boolean,
-            default: false,
-        },
+        reminded_users: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
         due_date: {
             type: Date,
             default: null,

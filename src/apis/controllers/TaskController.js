@@ -463,7 +463,7 @@ class TaskController {
             }
             // Update reminder_date
             task.reminder_date = reminder_date;
-            task.is_reminded = false;
+            task.reminded_users = [];
             await task.save();
             return res.status(200).json({
                 success: true,
