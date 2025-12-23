@@ -1,0 +1,73 @@
+=== START COMBINED DUYTOAN TEST RUN ===
+[2025-12-23T12:17:02.556Z] INFO: Initializing Test Suite...
+[2025-12-23T12:17:03.239Z] 
+--- TEST CASE 1: [createList] Owner Create List ---
+[2025-12-23T12:17:03.398Z] RESULT: PASS
+[2025-12-23T12:17:03.900Z] 
+--- TEST CASE 2: [createList] Member Create List (Access Check) ---
+[2025-12-23T12:17:03.931Z] RESULT: PASS
+[2025-12-23T12:17:04.434Z] 
+--- TEST CASE 3: [createList] Outsider Create List (Forbidden) ---
+[2025-12-23T12:17:04.456Z] RESULT: PASS
+[2025-12-23T12:17:04.985Z] 
+--- TEST CASE 4: [getListsByProject] Member Get Lists ---
+[2025-12-23T12:17:05.019Z] RESULT: PASS
+[2025-12-23T12:17:05.562Z] 
+--- TEST CASE 5: [getListsByProject] Invalid ProjectId ---
+[2025-12-23T12:17:05.590Z] RESULT: PASS
+[2025-12-23T12:17:06.112Z] 
+--- TEST CASE 6: [getListsByProject] Project Not Found ---
+[2025-12-23T12:17:06.133Z] RESULT: PASS
+[2025-12-23T12:17:06.681Z] 
+--- TEST CASE 7: [updateList] Member Update List ---
+[2025-12-23T12:17:06.722Z] RESULT: PASS
+[2025-12-23T12:17:07.221Z] 
+--- TEST CASE 8: [updateList] List Not Found ---
+[2025-12-23T12:17:07.231Z] RESULT: PASS
+[2025-12-23T12:17:07.761Z] 
+--- TEST CASE 9: [updateList] Empty Title ---
+[2025-12-23T12:17:07.781Z] RESULT: PASS
+[2025-12-23T12:17:08.329Z] 
+--- TEST CASE 10: [deleteList] Owner Delete ---
+[2025-12-23T12:17:08.351Z] RESULT: PASS
+[2025-12-23T12:17:08.881Z] 
+--- TEST CASE 11: [reorderLists] Reorder OK ---
+[2025-12-23T12:17:08.901Z] RESULT: PASS
+[2025-12-23T12:17:09.449Z] 
+--- TEST CASE 12: [searchProjectsByName] Find 'Alpha' by Creator ---
+[2025-12-23T12:17:09.479Z] RESULT: PASS
+[2025-12-23T12:17:09.967Z] 
+--- TEST CASE 13: [searchProjectsByName] Find 'Project' (Multiple) ---
+[2025-12-23T12:17:09.984Z] RESULT: PASS
+[2025-12-23T12:17:10.477Z] 
+--- TEST CASE 14: [searchProjectsByName] User 2 finds Beta (Created by User 1, Not Member? Wait, search only finds created_by?) ---
+[2025-12-23T12:17:10.495Z] RESULT: PASS
+[2025-12-23T12:17:10.980Z] 
+--- TEST CASE 15: [searchProjectsByName] No Match ---
+[2025-12-23T12:17:10.990Z] RESULT: PASS
+[2025-12-23T12:17:11.488Z] 
+--- TEST CASE 16: [getProjectsUserJoined] User 2 joined Project A ---
+[2025-12-23T12:17:11.538Z] RESULT: PASS
+[2025-12-23T12:17:12.031Z] 
+--- TEST CASE 17: [getProjectsUserJoined] User 1 sees own projects ---
+[2025-12-23T12:17:12.048Z] RESULT: PASS
+[2025-12-23T12:17:12.526Z] 
+--- TEST CASE 18: [getProjectsUserJoined] Stats Calculation ---
+[2025-12-23T12:17:12.576Z] RESULT: PASS
+[2025-12-23T12:17:13.058Z] 
+--- TEST CASE 19: [updateDueDate] Set Due Date ---
+[2025-12-23T12:17:13.083Z] RESULT: PASS
+[2025-12-23T12:17:13.597Z] 
+--- TEST CASE 20: [updateDueDate] Task Not Found ---
+[2025-12-23T12:17:13.608Z] RESULT: PASS
+[2025-12-23T12:17:14.079Z] 
+--- TEST CASE 21: [updateReminderDate] Set Reminder Date ---
+[2025-12-23T12:17:14.092Z] RESULT: PASS
+[2025-12-23T12:17:14.594Z] 
+--- TEST CASE 22: [updateReminderDate] Task Not Found ---
+[2025-12-23T12:17:14.605Z] RESULT: PASS
+[2025-12-23T12:17:15.073Z] 
+--- TEST CASE 23: [getUserStats] Get User Stats ---
+[2025-12-23T12:17:15.112Z] RESULT: PASS
+[2025-12-23T12:17:15.126Z] === END COMBINED DUYTOAN TEST RUN ===
+[2025-12-23T12:17:15.126Z] SUMMARY: Tổng testcase thực hiện: 23
