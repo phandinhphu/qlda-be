@@ -42,6 +42,8 @@ app.get('/health-check', (req, res) => {
 
 // Initialize Socket.IO
 initializeSocket(server);
+const { startReminderJob } = require('./jobs/reminderJob');
+startReminderJob();
 
 connectDB().then(() => {
     server.listen(port, () => {

@@ -122,6 +122,7 @@ router.get('/:taskId/steps', TaskController.getTaskSteps);
 router.patch('/:taskId/steps/:stepId/toggle-completed', TaskController.toggleStepComplete);
 
 router.patch('/:taskId/due-date', TaskController.updateDueDate);
+router.patch('/:taskId/reminder-date', TaskController.updateReminderDate);
 /**
  * @route [POST] /api/tasks/:taskId/uploads
  * @dest thực hiện uploads file
