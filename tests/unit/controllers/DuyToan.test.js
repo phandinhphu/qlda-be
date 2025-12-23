@@ -35,7 +35,7 @@ const { JWT_SECRET } = require('../../../src/util/constants');
 const { createTestUserWithToken } = require('../../helpers/testHelpers');
 
 // Logger setup
-const LOG_FILE = path.join(__dirname, '../../../test_DuyToan.txt');
+const LOG_FILE = path.join(__dirname, '../../output/DuyToan_test_output.txt');
 
 // Test Counter
 let testCount = 0;
