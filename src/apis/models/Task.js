@@ -26,9 +26,13 @@ const taskSchema = new mongoose.Schema(
             enum: ['todo', 'in_progress', 'review', 'done'],
             default: 'todo',
         },
-        start_date: {
+        reminder_date: {
             type: Date,
             default: null,
+        },
+        is_reminded: {
+            type: Boolean,
+            default: false,
         },
         due_date: {
             type: Date,
