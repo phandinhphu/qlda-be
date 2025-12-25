@@ -43,6 +43,35 @@ const initializeSocket = (server) => {
     io.on('connection', (socket) => {
         console.log(`User connected: ${socket.userId}`);
 
+        // Danh sách người dùng đang online
+        const onlineUsers = new Map();
+
+        // User online tracking
+        socket.on('user_online', (userId) => {
+            onlineUsers.set(userId, socket.id);
+            console.log(`User online: ${userId}, size: ${onlineUsers.size}`);
+            io.emit('user-status', {
+                userId,
+                status: 'online',
+            });
+        });
+
+        // User offline tracking
+        socket.on('user_offline', () => {
+            for (let [userId, socketId] of onlineUsers.entries()) {
+                console.log(`Checking offline user: ${userId}`);
+                if (socketId === socket.id) {
+                    onlineUsers.delete(userId);
+
+                    io.emit('user-status', {
+                        userId,
+                        status: 'offline',
+                    });
+                    break;
+                }
+            }
+        });
+
         // Join user's personal room
         socket.join(`user:${socket.userId}`);
 
