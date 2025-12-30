@@ -18,7 +18,7 @@ function generateUniqueFilename(originalName) {
     let filename = originalName;
     let counter = 1;
 
-    // Nếu file đã tồn tại → thêm [1], [2], ...
+    // Nếu file đã tồn tại thì thêm [1], [2], ...
     while (fs.existsSync(path.join(uploadDir, filename))) {
         filename = `${base}[${counter}]${ext}`;
         counter++;
