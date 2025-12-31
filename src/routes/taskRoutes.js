@@ -12,6 +12,7 @@ router.use(verifyToken);
  */
 router.post('/', TaskController.createTask);
 
+router.get('/project/:project_id', TaskController.getAllTasks);
 /**
  * @route   [GET] /api/tasks/list/:list_id
  * @desc    Lấy tất cả task thuộc về một List
@@ -91,6 +92,24 @@ router.delete('/:taskId/labels/:labelId', TaskController.deleteLabel);
 router.post('/:id/comments', TaskController.addComment);
 
 /**
+ * @route [GET] /api/tasks/:taskId/comments
+ * @desc Lấy danh sách comments của task
+ */
+router.get('/:taskId/comments', TaskController.getTaskComments);
+
+/**
+ * @route [PUT] /api/tasks/:taskId/comments/:commentId
+ * @desc Cập nhật comment
+ */
+router.put('/:taskId/comments/:commentId', TaskController.updateComment);
+
+/**
+ * @route [DELETE] /api/tasks/:taskId/comments/:commentId
+ * @desc Xóa comment
+ */
+router.delete('/:taskId/comments/:commentId', TaskController.deleteComment);
+
+/**
  * @route [GET] /api/tasks/:taskId/steps
  * @desc  Lấy tất cả các bước (steps) của task
  */
@@ -102,6 +121,8 @@ router.get('/:taskId/steps', TaskController.getTaskSteps);
  */
 router.patch('/:taskId/steps/:stepId/toggle-completed', TaskController.toggleStepComplete);
 
+router.patch('/:taskId/due-date', TaskController.updateDueDate);
+router.patch('/:taskId/reminder-date', TaskController.updateReminderDate);
 /**
  * @route [POST] /api/tasks/:taskId/uploads
  * @dest thực hiện uploads file

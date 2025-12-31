@@ -10,6 +10,7 @@ route.post('/register', AuthController.register);
 route.post('/login', AuthController.login);
 route.post('/logout', AuthController.logout);
 route.get('/me', authMiddleware, AuthController.getMe);
+route.get('/socket-token', authMiddleware, AuthController.getSocketToken);
 // Google authentication
 route.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 

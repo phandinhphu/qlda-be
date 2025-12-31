@@ -1,4 +1,5 @@
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
@@ -8,16 +9,18 @@ const passport = require('passport');
 const { FRONTEND_URL, PORT } = require('./util/constants');
 const mongoose = require('mongoose');
 const connectDB = require('./config/db');
+const { initializeSocket } = require('./config/socket');
 
 require('./config/passport')(passport);
 
 const app = express();
+const server = http.createServer(app);
 const port = PORT;
 
 app.use(
     cors({
         credentials: true,
-        origin: FRONTEND_URL || 'http://localhost:3000',
+        origin: FRONTEND_URL || 'http://localhost:5173',
     }),
 );
 app.use(express.json({ limit: '10mb' }));
@@ -37,9 +40,15 @@ app.get('/health-check', (req, res) => {
     res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Initialize Socket.IO
+initializeSocket(server);
+const { startReminderJob } = require('./jobs/reminderJob');
+startReminderJob();
+
 connectDB().then(() => {
-    app.listen(port, () => {
+    server.listen(port, () => {
         console.log(`Server is running on port: ${port}`);
+        console.log(`Socket.IO is ready for connections`);
     });
 });
 

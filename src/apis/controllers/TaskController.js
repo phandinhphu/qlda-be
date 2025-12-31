@@ -105,6 +105,22 @@ class TaskController {
         }
     }
 
+    // [GET] /api/tasks - Lấy tất cả tasks
+    async getAllTasks(req, res) {
+        const { project_id } = req.params;
+        try {
+            const lists = await List.find({ project_id }).select('_id');
+            const listIds = lists.map((list) => list._id);
+            const tasks = await Task.find({ list_id: { $in: listIds } })
+                .populate('assigned_to', 'name email avatar_url')
+                .populate('list_id', 'title');
+            return res.status(200).json(tasks);
+        } catch (error) {
+            console.error('Error getting all tasks:', error);
+            return res.status(500).json({ message: 'Lỗi server' });
+        }
+    }
+
     // [POST] /api/tasks - Tạo task mới
     async createTask(req, res) {
         const { title, list_id, description, assigned_to, due_date, priority } = req.body;
@@ -404,6 +420,65 @@ class TaskController {
         }
     }
 
+    async updateDueDate(req, res) {
+        try {
+            const { taskId } = req.params;
+            const { due_date } = req.body;
+            // Find task
+            const task = await Task.findById(taskId);
+            if (!task) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy task',
+                });
+            }
+            // Update due_date
+            task.due_date = due_date;
+            await task.save();
+            console.log('Updated task:', task);
+            return res.status(200).json({
+                success: true,
+                data: task,
+                message: 'Cập nhật ngày hết hạn thành công',
+            });
+        } catch (error) {
+            console.error('Error setting due date:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi cập nhật ngày hết hạn',
+            });
+        }
+    }
+    async updateReminderDate(req, res) {
+        try {
+            const { taskId } = req.params;
+            const { reminder_date } = req.body;
+            // Find task
+            const task = await Task.findById(taskId);
+            if (!task) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy task',
+                });
+            }
+            // Update reminder_date
+            task.reminder_date = reminder_date;
+            task.reminded_users = [];
+            await task.save();
+            return res.status(200).json({
+                success: true,
+                data: task,
+                message: 'Cập nhật ngày nhắc thành công',
+            });
+        } catch (error) {
+            console.error('Error setting reminder date:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi cập nhật ngày nhắc',
+            });
+        }
+    }
+
     /**
      * @route   [GET] /api/tasks/:taskId/labels
      * @desc    Lấy danh sách labels của task
@@ -558,6 +633,139 @@ class TaskController {
         } catch (error) {
             console.error(error);
             return res.status(500).json({ message: 'Lỗi server' });
+        }
+    }
+
+    /**
+     * @route   [GET] /api/tasks/:taskId/comments
+     * @desc    Lấy danh sách comments của task
+     */
+    async getTaskComments(req, res) {
+        try {
+            const { taskId } = req.params;
+
+            // Find task
+            const task = await Task.findById(taskId);
+            if (!task) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy task',
+                });
+            }
+
+            // Get all comments with user info
+            const comments = await TaskComment.find({ task_id: taskId })
+                .populate('user_id', 'name email avatar_url')
+                .sort({ created_at: 1 });
+
+            return res.status(200).json({
+                success: true,
+                data: comments,
+                message: 'Lấy danh sách comments thành công',
+            });
+        } catch (error) {
+            console.error('Error getting task comments:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi lấy danh sách comments',
+            });
+        }
+    }
+
+    /**
+     * @route   [PUT] /api/tasks/:taskId/comments/:commentId
+     * @desc    Cập nhật comment
+     * @body    { content: "Nội dung mới" }
+     */
+    async updateComment(req, res) {
+        try {
+            const { taskId, commentId } = req.params;
+            const { content } = req.body;
+            const userId = req.user._id;
+
+            if (!content) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Vui lòng nhập nội dung bình luận',
+                });
+            }
+
+            // Find comment
+            const comment = await TaskComment.findOne({ _id: commentId, task_id: taskId });
+            if (!comment) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy comment',
+                });
+            }
+
+            // Check if user is the owner of the comment
+            if (comment.user_id.toString() !== userId.toString()) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Bạn không có quyền chỉnh sửa comment này',
+                });
+            }
+
+            // Update comment
+            comment.content = content;
+            await comment.save();
+
+            // Populate user info
+            await comment.populate('user_id', 'name email avatar_url');
+
+            return res.status(200).json({
+                success: true,
+                data: comment,
+                message: 'Cập nhật comment thành công',
+            });
+        } catch (error) {
+            console.error('Error updating comment:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi cập nhật comment',
+            });
+        }
+    }
+
+    /**
+     * @route   [DELETE] /api/tasks/:taskId/comments/:commentId
+     * @desc    Xóa comment
+     */
+    async deleteComment(req, res) {
+        try {
+            const { taskId, commentId } = req.params;
+            const userId = req.user._id;
+
+            // Find comment
+            const comment = await TaskComment.findOne({ _id: commentId, task_id: taskId });
+            if (!comment) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy comment',
+                });
+            }
+
+            // Check if user is the owner of the comment
+            if (comment.user_id.toString() !== userId.toString()) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Bạn không có quyền xóa comment này',
+                });
+            }
+
+            await TaskComment.findByIdAndDelete(commentId);
+
+            return res.status(200).json({
+                success: true,
+                message: 'Xóa comment thành công',
+            });
+        } catch (error) {
+            console.error('Error deleting comment:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi xóa comment',
+            });
         }
     }
     // [PUT] /api/tasks/:taskId/move - Di chuyển task sang list khác

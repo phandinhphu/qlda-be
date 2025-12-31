@@ -103,14 +103,16 @@ class ListController {
                             const User = require('../models/User');
                             // Collect all valid user IDs
                             const userIds = tasks
-                                .map((t) => t.assigned_to)
+                                .flatMap((t) => t.assigned_to || [])
                                 .filter((id) => id && mongoose.Types.ObjectId.isValid(id));
 
                             // Fetch all users at once
                             let usersMap = {};
                             if (userIds.length > 0) {
                                 try {
-                                    const users = await User.find({ _id: { $in: userIds } })
+                                    // Use Set to remove duplicates before querying
+                                    const uniqueIds = [...new Set(userIds.map((id) => id.toString()))];
+                                    const users = await User.find({ _id: { $in: uniqueIds } })
                                         .select('name email avatar_url')
                                         .lean();
                                     usersMap = users.reduce((map, user) => {
@@ -124,10 +126,13 @@ class ListController {
 
                             // Map users to tasks
                             tasks = tasks.map((task) => {
-                                if (task.assigned_to && mongoose.Types.ObjectId.isValid(task.assigned_to)) {
-                                    task.assigned_to = usersMap[task.assigned_to.toString()] || null;
+                                if (Array.isArray(task.assigned_to) && task.assigned_to.length > 0) {
+                                    task.assigned_to = task.assigned_to
+                                        .filter((id) => id && mongoose.Types.ObjectId.isValid(id))
+                                        .map((id) => usersMap[id.toString()] || null)
+                                        .filter((user) => user !== null);
                                 } else {
-                                    task.assigned_to = null;
+                                    task.assigned_to = [];
                                 }
                                 return task;
                             });

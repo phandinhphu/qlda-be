@@ -2,6 +2,7 @@ const Project = require('../models/Project');
 const ProjectMember = require('../models/ProjectMember');
 const List = require('../models/List');
 const Task = require('../models/Task');
+const ChatController = require('./ChatController');
 
 class ProjectController {
     // [GET] /api/projects - Lấy danh sách tất cả dự án
@@ -162,6 +163,16 @@ class ProjectController {
             });
             await newProjectMember.save();
 
+            // Tạo group chat room cho project
+            try {
+                const groupRoom = await ChatController.createGroupChatRoom(savedProject._id, savedProject.project_name);
+                // Thêm owner vào group chat
+                await ChatController.addMemberToGroupRoom(savedProject._id, userId);
+            } catch (chatError) {
+                console.error('Error creating chat room:', chatError);
+                // Không throw error, vẫn tạo project thành công
+            }
+
             return res.status(201).json({
                 success: true,
                 data: savedProject,
@@ -317,8 +328,8 @@ class ProjectController {
                                             { $in: ['$list_id', '$$listIds'] },
 
                                             // Điều kiện 2: task.assigned_to phải là userId
-                                            // (userId này là biến JS bạn có trong hàm controller)
-                                            { $eq: ['$assigned_to', userId] },
+                                            // (userId này là biến JS có trong hàm controller)
+                                            { $in: [userId, '$assigned_to'] },
                                         ],
                                     },
                                 },
