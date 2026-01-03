@@ -11,6 +11,19 @@ const taskFileSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
+        file_name: {
+            type: String,
+            required: true,
+        },
+        public_id: {
+            type: String,
+            required: true,
+        },
+        resource_type: {
+            type: String,
+            enum: ['image', 'raw'],
+            required: true,
+        },
         uploaded_by: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
