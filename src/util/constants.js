@@ -34,6 +34,22 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET
           throw new Error('GOOGLE_CLIENT_SECRET chưa được định nghĩa trong file .env');
       })();
 
+const CLOUDINARY_NAME = process.env.CLOUDINARY_NAME
+    ? process.env.CLOUDINARY_NAME
+    : (() => {
+          throw new Error('CLOUDINARY_NAME chưa được định nghĩa trong file .env');
+      })();
+const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY
+    ? process.env.CLOUDINARY_API_KEY
+    : (() => {
+          throw new Error('CLOUDINARY_API_KEY chưa được định nghĩa trong file .env');
+      })();
+const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET
+    ? process.env.CLOUDINARY_API_SECRET
+    : (() => {
+          throw new Error('CLOUDINARY_API_SECRET chưa được định nghĩa trong file .env');
+      })();
+
 module.exports = {
     JWT_SECRET,
     JWT_EXPIRES_IN,
@@ -44,4 +60,7 @@ module.exports = {
     GOOGLE_CALLBACK_URL,
     GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET,
+    CLOUDINARY_NAME,
+    CLOUDINARY_API_KEY,
+    CLOUDINARY_API_SECRET,
 };
