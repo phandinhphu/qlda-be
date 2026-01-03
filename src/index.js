@@ -21,9 +21,12 @@ app.use(
     cors({
         credentials: true,
         origin: FRONTEND_URL || 'http://localhost:5173',
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
     }),
 );
 app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 app.use(morgan('dev'));
 app.use(

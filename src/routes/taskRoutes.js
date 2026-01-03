@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const TaskController = require('../apis/controllers/TaskController.js');
 const verifyToken = require('../middleware/auth.js');
-const upload = require('../middleware/upload.js');
+const upload = require('../config/multer');
 
 router.use(verifyToken);
 

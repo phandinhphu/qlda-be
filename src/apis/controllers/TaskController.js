@@ -8,6 +8,7 @@ const TaskLabel = require('../models/TaskLabel');
 const TaskComment = require('../models/TaskComment');
 const TaskFile = require('../models/TaskFile');
 const User = require('../models/User');
+const { uploadToCloudinary, buildViewUrl } = require('../../services/uploadService');
 
 class TaskController {
     // [GET] /api/tasks/:id - Lấy chi tiết một task
@@ -941,14 +942,17 @@ class TaskController {
                 return res.status(400).json({ message: 'Vui lòng chọn file để tải lên.' });
             }
 
-            // 2. Tạo đường dẫn URL để frontend truy cập
-            const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+            // 2. Upload file lên Cloudinary
+            const fileData = await uploadToCloudinary(req.file);
 
             // 3. Lưu thông tin vào MongoDB
             const newTaskFile = new TaskFile({
                 task_id: taskId,
-                file_url: fileUrl,
+                file_url: buildViewUrl(fileData),
+                file_name: req.file.originalname, // Lưu tên file gốc
+                public_id: fileData.public_id,
                 uploaded_by: userId,
+                resource_type: fileData.resource_type,
             });
 
             await newTaskFile.save();
@@ -960,7 +964,7 @@ class TaskController {
                 message: 'Upload file thành công',
             });
         } catch (error) {
-            console.error('Lỗi khi upload file:', error);
+            console.error('Lỗi khi upload file:', error.message);
             // Xóa file nếu có lỗi db để tránh rác (optional)
             return res.status(500).json({ message: 'Lỗi server khi xử lý file.' });
         }
